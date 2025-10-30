@@ -1,7 +1,13 @@
-name: llm
+name: ip1
 channels:
   - conda-forge
 dependencies:
   - ipywidgets
   - ipykernel
   - jupyterlab
+  - pandas
+  - geopandas
+  - matplotlib
+  - contextily
+  - os
+  - sys
