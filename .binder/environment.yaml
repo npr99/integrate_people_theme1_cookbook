@@ -18,6 +18,7 @@ dependencies:
   - pyproj=3.7.2
   - geopy=2.4.1
   - requests=2.32.5
+  - openpyxl
   - pip
   - pip:
       - ipyfilechooser==0.6.0
