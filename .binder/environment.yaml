@@ -1,11 +1,23 @@
 name: ip1
 channels:
   - conda-forge
+  - defaults
 dependencies:
-  - ipywidgets
-  - ipykernel
-  - jupyterlab
-  - pandas
-  - geopandas
-  - matplotlib
-  - contextily
+  - python=3.13.9
+  - jupyterlab=4.4.10
+  - ipywidgets=8.1.7
+  - numpy=2.3.4
+  - pandas=2.3.3
+  - matplotlib=3.10.7
+  - scipy=1.16.3
+  - scikit-learn=1.7.2
+  - geopandas=1.1.1
+  - folium=0.20.0
+  - contextily=1.6.2
+  - rasterio=1.4.3
+  - pyproj=3.7.2
+  - geopy=2.4.1
+  - requests=2.32.5
+  - pip
+  - pip:
+      - ipyfilechooser==0.6.0
