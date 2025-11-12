@@ -1,6 +1,6 @@
 {
   "id": "integrate_people_theme1_cookbook-cpu",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Jupyter Lab environment for CPU",
   "owner": "${apiUserId}",
   "enabled": true,
