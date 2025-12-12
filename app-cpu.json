@@ -7,7 +7,7 @@
   "runtime": "SINGULARITY",
   "runtimeVersion": null,
   "runtimeOptions": ["SINGULARITY_RUN"],
-  "containerImage": "docker://ghcr.io/npr99/integrate_people_theme1_cookbook-cpu:sha-dc17eeb",
+  "containerImage": "docker://ghcr.io/npr99/integrate_people_theme1_cookbook-cpu:sha-b248ac7",
   "jobType": "BATCH",
   "maxJobs": -1,
   "maxJobsPerUser": -1,
