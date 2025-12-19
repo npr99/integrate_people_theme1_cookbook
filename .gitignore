@@ -8,10 +8,16 @@
 .LSOverride
 
 # Icon must end with two \r
-Icon
+Icon
+
 
 # Thumbnails
 ._*
+
+# output folders
+**/ip1_*/
+ip1_*/
+
 
 # Files that might appear in the root of a volume
 .DocumentRevisions-V100
