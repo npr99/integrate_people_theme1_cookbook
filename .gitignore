@@ -18,6 +18,12 @@ Icon
 **/ip1_*/
 ip1_*/
 
+# Source Data Folder
+**/SourceData/**
+
+# Zip Files
+**/*.zip
+
 
 # Files that might appear in the root of a volume
 .DocumentRevisions-V100
