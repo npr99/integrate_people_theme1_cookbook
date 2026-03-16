@@ -4,21 +4,155 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Hotspot Population-Air Maps</title>
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+    }
+
+    .layout {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      width: 280px;
+      padding: 16px;
+      box-sizing: border-box;
+      border-right: 1px solid;
+    }
+
+    .sidebar h1 {
+      margin-top: 0;
+      font-size: 1.25rem;
+    }
+
+    .selector-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin: 12px 0 16px;
+    }
+
+    .selector-btn {
+      width: 100%;
+      text-align: left;
+      padding: 8px 10px;
+      border: 1px solid;
+      background: transparent;
+      cursor: pointer;
+    }
+
+    .selector-btn[aria-current="true"] {
+      font-weight: 700;
+      border-width: 2px;
+    }
+
+    .viewer {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .viewer-header {
+      padding: 10px 14px;
+      border-bottom: 1px solid;
+    }
+
+    .viewer-header p {
+      margin: 4px 0;
+    }
+
+    .map-frame {
+      flex: 1;
+      width: 100%;
+      border: 0;
+      min-height: 70vh;
+    }
+
+    @media (max-width: 900px) {
+      .layout {
+        flex-direction: column;
+      }
+
+      .sidebar {
+        width: 100%;
+        border-right: 0;
+        border-bottom: 1px solid;
+      }
+    }
+  </style>
 </head>
 <body>
-  <h1>Hotspot Population-Air Maps</h1>
-  <p>Interactive map outputs published from this repository.</p>
-  <ul>
-    <li>
-      <a href="InteractiveMaps/ip1_2dv2_hotspotspopair_uifl_1km_Benzene_mean.html">
-        Benzene (mean) interactive map
-      </a>
-    </li>
-    <li>
-      <a href="InteractiveMaps/ip1_2dv2_hotspotspopair_uifl_1km_Ethylene%20Oxide_mean.html">
-        Ethylene Oxide (mean) interactive map
-      </a>
-    </li>
-  </ul>
+  <div class="layout">
+    <aside class="sidebar">
+      <h1>Hotspot Population-Air Maps</h1>
+      <p>Select a HAP to load the map on this page.</p>
+      <div id="selector-list" class="selector-list"></div>
+      <noscript>
+        <p>JavaScript is off. Open maps directly:</p>
+        <ul>
+          <li><a href="InteractiveMaps/ip1_2dv2_hotspotspopair_uifl_1km_Benzene_mean.html" target="_blank" rel="noopener noreferrer">Benzene (mean)</a></li>
+          <li><a href="InteractiveMaps/ip1_2dv2_hotspotspopair_uifl_1km_Ethylene%20Oxide_mean.html" target="_blank" rel="noopener noreferrer">Ethylene Oxide (mean)</a></li>
+        </ul>
+      </noscript>
+    </aside>
+
+    <main class="viewer">
+      <div class="viewer-header">
+        <p><strong>Current map:</strong> <span id="current-map-label"></span></p>
+        <p><a id="open-map-link" href="#" target="_blank" rel="noopener noreferrer">Open current map in a new tab</a></p>
+      </div>
+      <iframe
+        id="map-frame"
+        class="map-frame"
+        title="Interactive hotspot map"
+        loading="lazy"
+        src="about:blank"
+      ></iframe>
+    </main>
+  </div>
+
+  <script>
+    const MAP_OPTIONS = [
+      {
+        label: "Benzene (mean)",
+        path: "InteractiveMaps/ip1_2dv2_hotspotspopair_uifl_1km_Benzene_mean.html"
+      },
+      {
+        label: "Ethylene Oxide (mean)",
+        path: "InteractiveMaps/ip1_2dv2_hotspotspopair_uifl_1km_Ethylene%20Oxide_mean.html"
+      }
+    ];
+
+    const selectorList = document.getElementById("selector-list");
+    const mapFrame = document.getElementById("map-frame");
+    const currentLabel = document.getElementById("current-map-label");
+    const openMapLink = document.getElementById("open-map-link");
+
+    function setMap(index) {
+      const selected = MAP_OPTIONS[index];
+      mapFrame.src = selected.path;
+      currentLabel.textContent = selected.label;
+      openMapLink.href = selected.path;
+
+      const buttons = selectorList.querySelectorAll("button.selector-btn");
+      buttons.forEach((button, buttonIndex) => {
+        button.setAttribute("aria-current", buttonIndex === index ? "true" : "false");
+      });
+    }
+
+    MAP_OPTIONS.forEach((mapOption, index) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "selector-btn";
+      button.textContent = mapOption.label;
+      button.addEventListener("click", () => setMap(index));
+      selectorList.appendChild(button);
+    });
+
+    setMap(0);
+  </script>
 </body>
 </html>
