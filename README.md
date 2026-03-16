@@ -1,116 +1,85 @@
-This template is the first in a [series of tutorials](#next-tutorials) that will guide you through the process of creating a cookbook and running it on TACC systems. From simple ones that run a command to more complex ones that run a Python using conda or a Jupyter Notebook.
+# integrate_people_theme1_cookbook
 
-## Requirements
+This project integrates hazardous air pollutant (HAP) model outputs with housing/population data for Southeast Texas, then generates hotspot layers and interactive web maps.
 
-- A GitHub account
-- TACC account. If you don't have one, you can request one [here](https://accounts.tacc.utexas.edu/register)
-- To access TACC systems, you should have an [allocation](https://tacc.utexas.edu/use-tacc/allocations/)
-  - You can see your allocations [here](https://ptdatax.tacc.utexas.edu/workbench/allocations/approved)
-  - If you don't have an allocation, you can request one [here](https://portal.tacc.utexas.edu/allocation-request)
+## What the Python files do (`.py`)
 
-## Template Overview
+Core processing modules:
 
-This template creates a cookbook that runs a Jupyter Notebook stored in the repository. The cookbook will download the Jupyter Notebook, install the required Python packages, and execute the notebook in the TACC cluster.
+- `ip1_0bv1_config.py`  
+	Shared constants and configuration (species names, URLs, contour defaults, demographic thresholds, color mappings).
 
-The environment and notebook are saved on the TACC storage. Therefore, you can resume the execution of the notebook from where it stopped.
+- `ip1_0cv1_utils.py`  
+	Utility helpers for resolution naming, grid IDs, and directory creation.
 
-### How does it work?
+- `ip1_0dv1_obtain_data.py`  
+	Data acquisition functions (download/read pollutant GeoTIFF archives and hourly pollutant zip files).
 
-1. [`app.json`](app.json) file: contains the definition of the Tapis application, including the application's name, description, Docker image, input files, and advanced options.
-2. [`Dockerfile`](Dockerfile): a Docker image is built from the [`Dockerfile`](./Dockerfile). The Docker image defines the runtime environment for the application and the files that will be used by the application.
-3. [`run.sh`](run.sh): contains all the commands that will be executed on the TACC cluster.
-4. [`notebook.ipynb`](notebook.ipynb): a Jupyter Notebook that will be executed by the application.
-5. [`.binder/requirements.txt`](requirements.txt): a file that contains the Python packages that will be installed in the Docker image.
-6. [`.binder/environment.yml`](environment.yml): a file that contains the conda environment that will be installed in the Docker image.
+- `ip1_0ev1_clean_data.py`  
+	Cleaning/join pipeline utilities (convert raster cells to vector grids, add raster values to grids, spatially join grid attributes to housing unit points, write outputs).
 
-### Job run script
+- `ip1_0fv1_explore_visualize.py`  
+	Visualization and mapping utilities (extent plots, raster/vector checks, contour helper functions, map-ready plotting routines).
 
-The `run.sh` file is used to run the commands and define important variables for the application.
+- `ip1_0gv1_model_statistics.py`  
+	Statistical comparison tools (ANOVA-style comparisons, effect size, bootstrap confidence intervals, resolution/group comparison summaries).
 
-```bash
-#!/bin/bash
-export GIT_REPO_URL="https://github.com/In-For-Disaster-Analytics/Cookbook-Jupyter-Template.git"
-export COOKBOOK_NAME="cookbook-template-jupyter"
-export COOKBOOK_CONDA_ENV="example"
-IS_GPU_JOB=false
-```
+- `ip1_0hv1_hotspot_analysis.py`  
+	Main hotspot analysis functions (demographic filtering, contour creation, weighted exposure hotspot construction, interactive Folium map creation, output save helpers).
 
-- `GIT_REPO_URL`: the URL of the GitHub repository created from this template.
-- `COOKBOOK_NAME`: the name of the cookbook. It will be used to create the directory where the files will be stored.
-- `COOKBOOK_CONDA_ENV`: the name of the conda environment that will be created on your TACC account.
-- `IS_GPU_JOB`: a boolean variable that defines if the job will run on a GPU node. If you want to run the job on a GPU node, change the value to `true`.
+Pipeline helpers:
 
-## Create your Cookbook
+- `ip1_1av1_common.py`  
+	Convenience import layer that re-exports the major functions from the modules above for notebook use.
 
-### Create a new repository
+- `update_hotspot_analysis.py`  
+	One-time maintenance script used to patch hotspot function signatures/docstrings (development utility, not part of routine analysis runs).
 
-1. Click on the "Use this template" button to create a new repository
-2. Fill in the form with the information for your new repository
+## What the notebooks do (`.ipynb`)
 
-### Build the Docker image
+Primary top-level notebooks:
 
-You can skip this step if you don't want to build the Docker image yourself. You can use the Docker image from the registry. [GPU image](https://github.com/orgs/In-For-Disaster-Analytics/packages/container/package/cookbook-jupyter-template-gpu)
-or [CPU image](https://github.com/orgs/In-For-Disaster-Analytics/packages/container/package/cookbook-jupyter-template-cpu)
+- `ip1_2bv2_airdata_2026-02-23.ipynb`  
+	Converts modeled HAP GeoTIFF datasets into tabular/grid outputs (CSV and GeoPackage) for 1 km and 4 km processing.
 
-1. Clone the repository
-2. Build the Docker image using the command below
+- `ip1_2cv2_popair_2026-02-27.ipynb`  
+	Merges housing unit allocation/population attributes with air pollutant grid values through spatial joins.
 
-```bash
-docker build -t cookbook-juptyer-gpu -f Dockerfile.gpu .
-docker build -t cookbook-juptyer-cpu -f Dockerfile.cpu .
-```
+- `ip1_2dv1_hotspotspopair_2026-03-05.ipynb`  
+	Builds hotspot contours and comparison layers from merged population-air data.
 
-3. Push the Docker image to a container registry
+- `ip1_2dv2_hotspotspopair_2026-03-05.ipynb`  
+	Produces map-ready hotspot outputs for selected pollutants (for example Benzene and Ethylene Oxide at multiple resolutions).
 
-```bash
-docker tag cookbook-juptyer-gpu <your-docker-username>/cookbook-juptyer-gpu
-docker push <your-docker-username>/cookbook-juptyer-gpu
-docker tag cookbook-juptyer-cpu <your-docker-username>/cookbook-juptyer-cpu
-docker push <your-docker-username>/cookbook-juptyer-cpu
-```
+- `ip1_2dv3_hotspotspopair_2026-03-06.ipynb`  
+	Extended hotspot run including optional group-quarters populations (for example correctional, juvenile, and nursing facilities) and additional checks.
 
-### Modify the `app.json` file
+- `ip1_3av1_hotspotspopair_2026-03-03.ipynb`  
+	Exploratory notebook for inspecting and visualizing hotspot/population-air outputs.
 
-Each app has a unique `id` and `description`. So, you should change these fields to match your app's name and description.
+## What the HTML outputs represent (`.html`)
 
-1. Download the `app.json` file
-2. Change the values `id` and `description` fields with the name and description as you wish.
-3. If you built the Docker image, change the `containerImage` field with the image name you used.
+The HTML files are interactive web maps generated from the hotspot workflow (typically via Folium). They are intended for browser-based review and sharing.
 
-### Create a New Application on the Cookbook UI
+- Files in `InteractiveMaps/` are publish-ready interactive maps.
+- A typical map HTML includes pollutant-linked hotspot polygons, demographic comparison layers, and toggles/controls to inspect where population exposure is elevated.
+- Example outputs currently include:
+	- `InteractiveMaps/ip1_2dv2_hotspotspopair_uifl_1km_Benzene_mean.html`
+	- `InteractiveMaps/ip1_2dv2_hotspotspopair_uifl_1km_Ethylene Oxide_mean.html`
 
-1. Go to [Cookbook UI](https://in-for-disaster-analytics.github.io/cookbooks-ui/#/apps)
-2. Click on the "Create Application" button
-3. Fill in the form with the information from your `app.json` file
-4. Click "Create Application"
-5. A new application will be created, and you will be redirected to the application's page
+Supporting output folders (for example `ip1_2dv1_hotspotspopair/`, `ip1_2dv2_hotspotspopair/`, `ip1_2dv3_hotspotspopair/`) store intermediate and final geospatial artifacts used to build those HTML maps.
 
-### Run your Cookbook
+## Publish maps with GitHub Pages (manual branch updates)
 
-1. Go to the application's page on the Cookbook UI, if you are not already there
-2. Click on the "Run" button on the right side of the page. This will open the Portal UI
-3. Select the parameters for your job
+This repository can be published as a static website without automation. The website updates only when you push changes to your selected Pages branch.
 
-   ![Select the parameters](images/parameters.png)
+1. In GitHub, go to **Settings > Pages**.
+2. Set **Source** to **Deploy from a branch**.
+3. Select your publish branch and folder (`/docs`).
+4. Keep `docs/index.html` as the site entry page.
+5. Keep map HTML files in `docs/InteractiveMaps/` and link them from `docs/index.html`.
+6. Commit and push updates to the publish branch whenever you want the website to refresh.
 
-- Update cookbook: Control whether the system will update the existing cookbook with the latest version available. This option is irrelevant if you are running the cookbook for the first time.
-- Update conda environment: Control whether the system will update the existing conda environment with the latest version available. This option is irrelevant if you are running the cookbook for the first time.
+Example site URL pattern:
 
-### Access the notebook
-
-1. Go to the Jobs tab
-2. Wait for the job to be ready
-3. Click in the `Open session` button
-
-   ![Select the parameters](images/open-session.png)
-
-## Next templates
-
-- [Running a command](https://github.com/In-For-Disaster-Analytics/Cookbook-Docker-Template)
-- [Running a Python script using conda](https://github.com/In-For-Disaster-Analytics/Cookbook-Conda-Template)
-- [Running a Jupyter Notebook](https://github.com/In-For-Disaster-Analytics/Cookbook-Jupyter-Template)
-
-## Authors
-
-William Mobley - wmobley@tacc.utexas.edu
-Maximiliano Osorio
+`https://npr99.github.io/integrate_people_theme1_cookbook/`
