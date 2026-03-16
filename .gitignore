@@ -24,6 +24,11 @@ ip1_*/
 # Zip Files
 **/*.zip
 
+# Python cache files
+__pycache__/
+**/__pycache__/
+*.py[cod]
+
 
 # Files that might appear in the root of a volume
 .DocumentRevisions-V100

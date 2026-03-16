@@ -11,6 +11,7 @@ from ip1_0bv1_config import (
     DEFAULT_CONTOUR_PARAMS,
     DEFAULT_LOW_INCOME_PERCENTILE,
     DEFAULT_HIGH_INCOME_PERCENTILE,
+    DEFAULT_GROUP_QUARTERS_CODES,
     DEMOGRAPHIC_COLORS,
 )
 from ip1_0cv1_utils import ensure_dir, format_grid_id, normalize_resolution
@@ -82,6 +83,7 @@ __all__ = [
     "DEFAULT_CONTOUR_PARAMS",
     "DEFAULT_LOW_INCOME_PERCENTILE",
     "DEFAULT_HIGH_INCOME_PERCENTILE",
+    "DEFAULT_GROUP_QUARTERS_CODES",
     "DEMOGRAPHIC_COLORS",
     "ensure_dir",
     "format_grid_id",

@@ -21,6 +21,7 @@ from ip1_0bv1_config import (
     DEFAULT_CONTOUR_PARAMS,
     DEFAULT_LOW_INCOME_PERCENTILE,
     DEFAULT_HIGH_INCOME_PERCENTILE,
+    DEFAULT_GROUP_QUARTERS_CODES,
     DEMOGRAPHIC_COLORS,
 )
 from ip1_0fv1_explore_visualize import (
@@ -35,6 +36,8 @@ def filter_demographic_groups(
     gdf,
     low_income_percentile=DEFAULT_LOW_INCOME_PERCENTILE,
     high_income_percentile=DEFAULT_HIGH_INCOME_PERCENTILE,
+    include_group_quarters=False,
+    gqtype_codes=None,
 ):
     """
     Filter GeoDataFrame into demographic groups based on income and tenure.
@@ -42,31 +45,61 @@ def filter_demographic_groups(
     Parameters
     ----------
     gdf : GeoDataFrame
-        Input data with 'randincome' and 'ownershp' columns.
+        Input data with 'randincome', 'ownershp', and optionally 'gqtype' columns.
     low_income_percentile : float, optional
         Percentile threshold for low income (default: 0.25).
     high_income_percentile : float, optional
         Percentile threshold for high income (default: 0.75).
+    include_group_quarters : bool, optional
+        Whether to include group quarters (institutional populations) in the
+        low income renters group (default: False). Group quarters residents
+        have no income data, so all GQ of specified types are included.
+    gqtype_codes : list of int, optional
+        Group quarters facility type codes to include (default: [1, 2, 3]).
+        1 = Correctional facilities for adults
+        2 = Juvenile facilities
+        3 = Nursing facilities/Skilled-nursing facilities
 
     Returns
     -------
     dict
         Dictionary with keys:
-        - 'low_income_renters': GeoDataFrame of low income renters
+        - 'low_income_renters': GeoDataFrame of low income renters (and GQ if included)
         - 'high_income_homeowners': GeoDataFrame of high income homeowners
-        - 'thresholds': dict with 'low' and 'high' income values
+        - 'thresholds': dict with income values and GQ inclusion flag
         - 'counts': dict with counts for each group
+    
+    Notes
+    -----
+    Income thresholds are calculated from household records only (excluding group
+    quarters), ensuring percentiles reflect true household income distribution.
+    When include_group_quarters=True, all records with specified gqtype values
+    are added to the low_income_renters group regardless of income.
     """
-    # Calculate income thresholds
+    if gqtype_codes is None:
+        gqtype_codes = DEFAULT_GROUP_QUARTERS_CODES
+    
+    # Calculate income thresholds from households    
     low_threshold = gdf["randincome"].quantile(low_income_percentile)
     high_threshold = gdf["randincome"].quantile(high_income_percentile)
 
     # Filter demographic groups
     # ownershp: 1=owner, 2=renter
+    
+    # Low income renters (households only)
     low_income_renters = gdf[
         (gdf["ownershp"] == 2) & (gdf["randincome"] <= low_threshold)
     ].copy()
     
+    # Add group quarters if requested
+    group_quarters_count = 0
+    if include_group_quarters and "gqtype" in gdf.columns:
+        group_quarters = gdf[gdf["gqtype"].isin(gqtype_codes)].copy()
+        group_quarters_count = len(group_quarters)
+        # Combine renters and group quarters
+        low_income_renters = pd.concat([low_income_renters, group_quarters], ignore_index=False)
+    
+    # High income homeowners (unchanged)
     high_income_homeowners = gdf[
         (gdf["ownershp"] == 1) & (gdf["randincome"] >= high_threshold)
     ].copy()
@@ -79,9 +112,12 @@ def filter_demographic_groups(
             "high": high_threshold,
             "low_percentile": low_income_percentile,
             "high_percentile": high_income_percentile,
+            "group_quarters_included": include_group_quarters,
+            "gqtype_codes": gqtype_codes if include_group_quarters else None,
         },
         "counts": {
             "low_income_renters": len(low_income_renters),
+            "group_quarters_count": group_quarters_count,
             "high_income_homeowners": len(high_income_homeowners),
             "total": len(gdf),
         },
@@ -1219,6 +1255,8 @@ def _compute_area_stats(points_gdf, pollutant, area_km2=None):
     total_pop = points_gdf['numprec'].sum()
     renter_pop = points_gdf.loc[points_gdf['ownershp'] == 2, 'numprec'].sum()
     owner_pop = points_gdf.loc[points_gdf['ownershp'] == 1, 'numprec'].sum()
+    prisoner_pop = points_gdf.loc[points_gdf['gqtype'] == 1, 'numprec'].sum() if 'gqtype' in points_gdf.columns else 0
+    nursing_home_pop = points_gdf.loc[points_gdf['gqtype'] == 3, 'numprec'].sum() if 'gqtype' in points_gdf.columns else 0
     renter_pct = (renter_pop / total_pop * 100) if total_pop > 0 else 0
     owner_pct = (owner_pop / total_pop * 100) if total_pop > 0 else 0
     income_vals = points_gdf['randincome'].dropna()
@@ -1240,6 +1278,8 @@ def _compute_area_stats(points_gdf, pollutant, area_km2=None):
         'total_pop': total_pop,
         'renter_pop': renter_pop,
         'owner_pop': owner_pop,
+        'prisoner_pop': prisoner_pop,
+        'nursing_home_pop': nursing_home_pop,
         'renter_pct': renter_pct,
         'owner_pct': owner_pct,
         'median_income': median_income,
@@ -1273,6 +1313,8 @@ def _build_stats_legend_html(title, stats, pollutant_name, position_css):
         <p style="margin: 4px 0;"><b>Pop. Density:</b> {density_str} /km&sup2;</p>
         <p style="margin: 4px 0;"><b>Renters:</b> {stats['renter_pop']:,.0f} ({stats['renter_pct']:.1f}%)</p>
         <p style="margin: 4px 0;"><b>Owners:</b> {stats['owner_pop']:,.0f} ({stats['owner_pct']:.1f}%)</p>
+        <p style="margin: 4px 0;"><b>Prisoners:</b> {stats['prisoner_pop']:,.0f}</p>
+        <p style="margin: 4px 0;"><b>Nursing Home:</b> {stats['nursing_home_pop']:,.0f}</p>
         <p style="margin: 4px 0;"><b>Median Income:</b> ${stats['median_income']:,.0f}<br/>
         &nbsp;&nbsp;P25: ${stats['income_p25']:,.0f} &bull; P75: ${stats['income_p75']:,.0f}</p>
         <p style="margin: 4px 0;"><b>{pollutant_name} Conc (ppb):</b><br/>
@@ -1515,7 +1557,8 @@ def create_merged_hotspots_map(
         )
     else:
         low_stats = {k: 0 for k in ['total_pop', 'renter_pop', 'owner_pop', 'renter_pct',
-                                     'owner_pct', 'median_income', 'income_p25', 'income_p75',
+                                     'owner_pct', 'prisoner_pop', 'nursing_home_pop',
+                                     'median_income', 'income_p25', 'income_p75',
                                      'area_km2', 'pop_density',
                                      'hap_median', 'hap_min', 'hap_max', 'hap_p95']}
     hotspots_map.get_root().html.add_child(folium.Element(
@@ -1535,7 +1578,8 @@ def create_merged_hotspots_map(
         )
     else:
         high_stats = {k: 0 for k in ['total_pop', 'renter_pop', 'owner_pop', 'renter_pct',
-                                      'owner_pct', 'median_income', 'income_p25', 'income_p75',
+                                      'owner_pct', 'prisoner_pop', 'nursing_home_pop',
+                                      'median_income', 'income_p25', 'income_p75',
                                       'area_km2', 'pop_density',
                                       'hap_median', 'hap_min', 'hap_max', 'hap_p95']}
     hotspots_map.get_root().html.add_child(folium.Element(
@@ -1803,6 +1847,8 @@ def make_hotspot_map(
     output_dir=None,
     low_income_percentile=0.25,
     high_income_percentile=0.75,
+    include_group_quarters=False,
+    gqtype_codes=None,
     cell_size_m=400,
     window_radius_m=500,
     contour_increment=10,
@@ -1833,6 +1879,14 @@ def make_hotspot_map(
         Income percentile below which households are classified as low income (default 0.25).
     high_income_percentile : float, optional
         Income percentile above which households are classified as high income (default 0.75).
+    include_group_quarters : bool, optional
+        Whether to include group quarters (institutional populations) in the
+        low income renters group (default False).
+    gqtype_codes : list of int, optional
+        Group quarters facility type codes to include (default [1, 2, 3]).
+        1 = Correctional facilities for adults
+        2 = Juvenile facilities
+        3 = Nursing facilities/Skilled-nursing facilities
     cell_size_m : int, optional
         Raster cell size in metres (default 400).
     window_radius_m : int, optional
@@ -1865,11 +1919,16 @@ def make_hotspot_map(
     # 1. Load data
     popair_gdf, grid_gdf = load_hotspot_data(popair_path, grid_path)
 
+    if gqtype_codes is None:
+        gqtype_codes = DEFAULT_GROUP_QUARTERS_CODES
+        
     # 2. Classify demographic groups
     demographic_groups = filter_demographic_groups(
         popair_gdf,
         low_income_percentile=low_income_percentile,
         high_income_percentile=high_income_percentile,
+        include_group_quarters=include_group_quarters,
+        gqtype_codes=gqtype_codes,
     )
 
     # 3. Generate weighted contours for each method

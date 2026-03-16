@@ -45,6 +45,12 @@ DEFAULT_CONTOUR_PARAMS = {
 DEFAULT_LOW_INCOME_PERCENTILE = 0.25
 DEFAULT_HIGH_INCOME_PERCENTILE = 0.75
 
+# Group quarters facility types to include in low-income analysis
+# 1 = Correctional facilities for adults
+# 2 = Juvenile facilities
+# 3 = Nursing facilities/Skilled-nursing facilities
+DEFAULT_GROUP_QUARTERS_CODES = [1, 2, 3]
+
 # Colors for demographic visualizations
 DEMOGRAPHIC_COLORS = {
     "low_income_renters": "blue",
