@@ -77,8 +77,11 @@ This repository can be published as a static website without automation. The web
 2. Set **Source** to **Deploy from a branch**.
 3. Select your publish branch and folder (`/docs`).
 4. Keep `docs/index.html` as the site entry page.
-5. Keep map HTML files in `docs/InteractiveMaps/` and link them from `docs/index.html`.
-6. Commit and push updates to the publish branch whenever you want the website to refresh.
+5. Keep map HTML files in `docs/InteractiveMaps/`.
+6. Update the `MAP_OPTIONS` list in `docs/index.html` to add/remove HAP choices shown in the left selector.
+7. Commit and push updates to the publish branch whenever you want the website to refresh.
+
+The published `docs/index.html` is a single-page viewer: select a HAP on the left, and the map loads in an embedded frame on the right.
 
 Example site URL pattern:
 
