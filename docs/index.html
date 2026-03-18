@@ -19,6 +19,8 @@
     .sidebar {
       width: 280px;
       padding: 16px;
+      display: flex;
+      flex-direction: column;
       box-sizing: border-box;
       border-right: 1px solid;
     }
@@ -33,6 +35,13 @@
       flex-direction: column;
       gap: 8px;
       margin: 12px 0 16px;
+    }
+
+    .sidebar-warning {
+      margin-top: auto;
+      padding-top: 12px;
+      font-weight: 700;
+      color: #b00000;
     }
 
     .selector-btn {
@@ -66,10 +75,31 @@
     }
 
     .map-frame {
-      flex: 1;
       width: 100%;
       border: 0;
       min-height: 70vh;
+      height: 100%;
+    }
+
+    .map-stage {
+      position: relative;
+      flex: 1;
+      min-height: 70vh;
+    }
+
+    .draft-watermark {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) rotate(-45deg);
+      font-size: 5rem;
+      font-weight: 700;
+      color: #b00000;
+      opacity: 0.5;
+      pointer-events: none;
+      z-index: 2;
+      letter-spacing: 0.2rem;
+      user-select: none;
     }
 
     @media (max-width: 900px) {
@@ -82,6 +112,10 @@
         border-right: 0;
         border-bottom: 1px solid;
       }
+
+      .draft-watermark {
+        font-size: 3rem;
+      }
     }
   </style>
 </head>
@@ -91,6 +125,7 @@
       <h1>Hotspot Population-Air Maps</h1>
       <p>Select a HAP to load the map on this page.</p>
       <div id="selector-list" class="selector-list"></div>
+      <p class="sidebar-warning">For research and field-study planning purposes only. These data are not intended for public decision-making.</p>
       <noscript>
         <p>JavaScript is off. Open maps directly:</p>
         <ul>
@@ -103,15 +138,17 @@
     <main class="viewer">
       <div class="viewer-header">
         <p><strong>Current map:</strong> <span id="current-map-label"></span></p>
-        <p><a id="open-map-link" href="#" target="_blank" rel="noopener noreferrer">Open current map in a new tab</a></p>
       </div>
-      <iframe
-        id="map-frame"
-        class="map-frame"
-        title="Interactive hotspot map"
-        loading="lazy"
-        src="about:blank"
-      ></iframe>
+      <div class="map-stage">
+        <div class="draft-watermark" aria-hidden="true">DRAFT</div>
+        <iframe
+          id="map-frame"
+          class="map-frame"
+          title="Interactive hotspot map"
+          loading="lazy"
+          src="about:blank"
+        ></iframe>
+      </div>
     </main>
   </div>
 
@@ -130,13 +167,11 @@
     const selectorList = document.getElementById("selector-list");
     const mapFrame = document.getElementById("map-frame");
     const currentLabel = document.getElementById("current-map-label");
-    const openMapLink = document.getElementById("open-map-link");
 
     function setMap(index) {
       const selected = MAP_OPTIONS[index];
       mapFrame.src = selected.path;
       currentLabel.textContent = selected.label;
-      openMapLink.href = selected.path;
 
       const buttons = selectorList.querySelectorAll("button.selector-btn");
       buttons.forEach((button, buttonIndex) => {
