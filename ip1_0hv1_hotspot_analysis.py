@@ -1294,35 +1294,129 @@ def _compute_area_stats(points_gdf, pollutant, area_km2=None):
     }
 
 
-def _build_stats_legend_html(title, stats, pollutant_name, position_css):
-    """Build a fixed-position HTML stats inset div for a folium map."""
-    area_str = f"{stats['area_km2']:,.1f}" if not np.isnan(stats['area_km2']) else 'N/A'
-    density_str = f"{stats['pop_density']:,.1f}" if not np.isnan(stats['pop_density']) else 'N/A'
+def _build_comparison_summary_html(region_stats, low_stats, high_stats, pollutant_name, panel_id):
+    """Build a fixed-position, collapsible comparison table for summary metrics."""
+    def _fmt_int(value):
+        return f"{value:,.0f}" if not pd.isna(value) else "N/A"
+
+    def _fmt_float(value, decimals=1):
+        return f"{value:,.{decimals}f}" if not pd.isna(value) else "N/A"
+
+    def _fmt_pct(value):
+        return f"{value:.1f}%" if not pd.isna(value) else "N/A"
+
+    def _fmt_money(value):
+        return f"${value:,.0f}" if not pd.isna(value) else "N/A"
+
+    def _rent_owner_text(stats):
+        return (
+            f"{_fmt_int(stats['renter_pop'])} ({_fmt_pct(stats['renter_pct'])}) / "
+            f"{_fmt_int(stats['owner_pop'])} ({_fmt_pct(stats['owner_pct'])})"
+        )
+
+    rows = [
+        ("Total Land Area (km²)", _fmt_float(region_stats['area_km2'], 1), _fmt_float(low_stats['area_km2'], 1), _fmt_float(high_stats['area_km2'], 1)),
+        ("Total Population", _fmt_int(region_stats['total_pop']), _fmt_int(low_stats['total_pop']), _fmt_int(high_stats['total_pop'])),
+        ("Population Density (/km²)", _fmt_float(region_stats['pop_density'], 1), _fmt_float(low_stats['pop_density'], 1), _fmt_float(high_stats['pop_density'], 1)),
+        ("Renters / Owners", _rent_owner_text(region_stats), _rent_owner_text(low_stats), _rent_owner_text(high_stats)),
+        ("Prisoners", _fmt_int(region_stats['prisoner_pop']), _fmt_int(low_stats['prisoner_pop']), _fmt_int(high_stats['prisoner_pop'])),
+        ("Nursing Home", _fmt_int(region_stats['nursing_home_pop']), _fmt_int(low_stats['nursing_home_pop']), _fmt_int(high_stats['nursing_home_pop'])),
+        ("Median Income", _fmt_money(region_stats['median_income']), _fmt_money(low_stats['median_income']), _fmt_money(high_stats['median_income'])),
+        (
+            "Income P25 / P75",
+            f"{_fmt_money(region_stats['income_p25'])} / {_fmt_money(region_stats['income_p75'])}",
+            f"{_fmt_money(low_stats['income_p25'])} / {_fmt_money(low_stats['income_p75'])}",
+            f"{_fmt_money(high_stats['income_p25'])} / {_fmt_money(high_stats['income_p75'])}",
+        ),
+        (f"{pollutant_name} Median (ppb)", _fmt_float(region_stats['hap_median'], 4), _fmt_float(low_stats['hap_median'], 4), _fmt_float(high_stats['hap_median'], 4)),
+        (f"{pollutant_name} Min (ppb)", _fmt_float(region_stats['hap_min'], 4), _fmt_float(low_stats['hap_min'], 4), _fmt_float(high_stats['hap_min'], 4)),
+        (f"{pollutant_name} Max (ppb)", _fmt_float(region_stats['hap_max'], 4), _fmt_float(low_stats['hap_max'], 4), _fmt_float(high_stats['hap_max'], 4)),
+        (f"{pollutant_name} 95th pct (ppb)", _fmt_float(region_stats['hap_p95'], 4), _fmt_float(low_stats['hap_p95'], 4), _fmt_float(high_stats['hap_p95'], 4)),
+    ]
+
+    row_html = "".join([
+        f"<tr><td>{metric}</td><td>{region}</td><td>{low}</td><td>{high}</td></tr>"
+        for metric, region, low, high in rows
+    ])
+
     return f'''
-    <div style="position: fixed; {position_css}
-                width: 300px; height: auto;
+    <div id="{panel_id}" class="summary-inset"
+         style="position: fixed; bottom: 50px; left: 10px;
+                width: min(920px, calc(100vw - 20px)); height: auto;
                 background-color: white; border: 2px solid #333;
                 z-index: 9998; font-size: 11px;
                 padding: 12px; border-radius: 5px;
                 box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
-        <p style="margin-top: 0; font-weight: bold; border-bottom: 1px solid #333; padding-bottom: 6px;">
-            <u>{title}</u>
-        </p>
-        <p style="margin: 4px 0;"><b>Total Land Area:</b> {area_str} km&sup2;</p>
-        <p style="margin: 4px 0;"><b>Total Population:</b> {stats['total_pop']:,.0f}</p>
-        <p style="margin: 4px 0;"><b>Pop. Density:</b> {density_str} /km&sup2;</p>
-        <p style="margin: 4px 0;"><b>Renters:</b> {stats['renter_pop']:,.0f} ({stats['renter_pct']:.1f}%)</p>
-        <p style="margin: 4px 0;"><b>Owners:</b> {stats['owner_pop']:,.0f} ({stats['owner_pct']:.1f}%)</p>
-        <p style="margin: 4px 0;"><b>Prisoners:</b> {stats['prisoner_pop']:,.0f}</p>
-        <p style="margin: 4px 0;"><b>Nursing Home:</b> {stats['nursing_home_pop']:,.0f}</p>
-        <p style="margin: 4px 0;"><b>Median Income:</b> ${stats['median_income']:,.0f}<br/>
-        &nbsp;&nbsp;P25: ${stats['income_p25']:,.0f} &bull; P75: ${stats['income_p75']:,.0f}</p>
-        <p style="margin: 4px 0;"><b>{pollutant_name} Conc (ppb):</b><br/>
-        &nbsp;&nbsp;Median: {stats['hap_median']:.4f}<br/>
-        &nbsp;&nbsp;Min: {stats['hap_min']:.4f}<br/>
-        &nbsp;&nbsp;Max: {stats['hap_max']:.4f}<br/>
-        &nbsp;&nbsp;95th pct: {stats['hap_p95']:.4f}</p>
+        <div style="display:flex; align-items:center; justify-content:space-between;
+                    border-bottom: 1px solid #333; padding-bottom: 6px; margin-bottom: 6px; gap: 8px;">
+            <p style="margin: 0; font-weight: bold;"><u>Summary Comparison Table</u></p>
+            <button type="button" class="summary-toggle-btn"
+                    onclick="toggleSummaryPanel('{panel_id}', this)"
+                    style="font-size: 10px; line-height: 1.2; padding: 2px 8px;
+                           border: 1px solid #666; background: #fff; border-radius: 3px;
+                           cursor: pointer;">
+                Hide
+            </button>
+        </div>
+        <div class="summary-panel-content" style="overflow-x:auto;">
+            <table style="width: 100%; border-collapse: collapse; min-width: 760px;">
+                <thead>
+                    <tr>
+                        <th style="text-align:left; border-bottom:1px solid #bbb; padding:4px;">Metric</th>
+                        <th style="text-align:left; border-bottom:1px solid #bbb; padding:4px;">All Data</th>
+                        <th style="text-align:left; border-bottom:1px solid #bbb; padding:4px;">Low Income Renters</th>
+                        <th style="text-align:left; border-bottom:1px solid #bbb; padding:4px;">High Income Homeowners</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {row_html}
+                </tbody>
+            </table>
+        </div>
     </div>
+    '''
+
+
+def _build_summary_controls_html():
+    """Build CSS/JS used to make summary inset panels collapsible."""
+    return '''
+    <style>
+        .summary-inset.panel-collapsed .summary-panel-content {
+            display: none;
+        }
+
+        @media (max-width: 900px) {
+            .summary-inset {
+                width: calc(100vw - 20px) !important;
+            }
+        }
+    </style>
+    <script>
+        function toggleSummaryPanel(panelId, buttonEl) {
+            var panel = document.getElementById(panelId);
+            if (!panel) {
+                return;
+            }
+            var isCollapsed = panel.classList.toggle('panel-collapsed');
+            if (buttonEl) {
+                buttonEl.textContent = isCollapsed ? 'Show' : 'Hide';
+            }
+        }
+
+        function initializeSummaryPanelsCollapsed() {
+            var panels = document.querySelectorAll('.summary-inset');
+            panels.forEach(function(panel) {
+                var button = panel.querySelector('.summary-toggle-btn');
+                if (!button) {
+                    return;
+                }
+                panel.classList.add('panel-collapsed');
+                button.textContent = 'Show';
+            });
+        }
+
+        window.addEventListener('load', initializeSummaryPanelsCollapsed);
+    </script>
     '''
 
 
@@ -1369,7 +1463,8 @@ def create_merged_hotspots_map(
 ):
     """
     Create an interactive folium map of merged hotspot polygons for both
-    low income renters and high income homeowners, with three stats inset panels.
+    low income renters and high income homeowners, with one collapsible
+    comparison summary table.
 
     Parameters
     ----------
@@ -1538,14 +1633,11 @@ def create_merged_hotspots_map(
     # Color / methods legend
     hotspots_map.get_root().html.add_child(folium.Element(_build_methods_legend_html()))
 
-    # Three stats inset panels
+    # Shared collapsible-controls for summary insets
+    hotspots_map.get_root().html.add_child(folium.Element(_build_summary_controls_html()))
+
+    # One collapsible comparison summary table
     region_stats = _compute_area_stats(popair_gdf, pollutant)
-    hotspots_map.get_root().html.add_child(folium.Element(
-        _build_stats_legend_html(
-            'Southeast Texas (All Data)', region_stats, pollutant_name,
-            'bottom: 50px; left: 10px;',
-        )
-    ))
 
     low_points = gpd.sjoin(
         popair_gdf, merged_low_gdf.to_crs(popair_gdf.crs), how='inner', predicate='intersects'
@@ -1561,12 +1653,6 @@ def create_merged_hotspots_map(
                                      'median_income', 'income_p25', 'income_p75',
                                      'area_km2', 'pop_density',
                                      'hap_median', 'hap_min', 'hap_max', 'hap_p95']}
-    hotspots_map.get_root().html.add_child(folium.Element(
-        _build_stats_legend_html(
-            'Low Income Renters Hotspots', low_stats, pollutant_name,
-            'bottom: 50px; left: 320px;',
-        )
-    ))
 
     high_points = gpd.sjoin(
         popair_gdf, merged_high_gdf.to_crs(popair_gdf.crs), how='inner', predicate='intersects'
@@ -1582,10 +1668,14 @@ def create_merged_hotspots_map(
                                       'median_income', 'income_p25', 'income_p75',
                                       'area_km2', 'pop_density',
                                       'hap_median', 'hap_min', 'hap_max', 'hap_p95']}
+
     hotspots_map.get_root().html.add_child(folium.Element(
-        _build_stats_legend_html(
-            'High Income Homeowners Hotspots', high_stats, pollutant_name,
-            'bottom: 50px; left: 630px;',
+        _build_comparison_summary_html(
+            region_stats,
+            low_stats,
+            high_stats,
+            pollutant_name,
+            'summary-comparison',
         )
     ))
 
